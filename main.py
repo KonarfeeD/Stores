@@ -4,7 +4,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.dispatcher import FSMContext
 import keyboards as kb
-from database import db_start, create_tovar, require_tovar
+from database import * 
 from aiogram.utils.exceptions import BotBlocked
 import dotenv
 import os
@@ -215,7 +215,7 @@ async def catalog(message: types.Message, state: FSMContext) -> None:
     cur.execute("SELECT * FROM cart WHERE tg_id == {key}".format(key=message.from_user.id))
     item = cur.fetchall()
     print(item)
-    if item == None:
+    if item == []:
         await message.answer(f'Корзина пуста!')
     else:
         for tovar in item:
@@ -263,7 +263,7 @@ async def buy_address_set(message: types.Message, state: FSMContext):
         cur.execute("DELETE FROM cart WHERE i_id == {key} AND tg_id == {key2}".format(key=int(buy_that['tovar_id']),
                                                                                       key2=int(buy_that['user_id'])))
         db.commit()
-    await message.answer(f'Спасибо за заказ! Мы Вам перезвоним в течении часа для уточнения деталей заказа')
+    await message.answer(f'Спасибо за заказ! Мы Вам перезвоним в течении часа для уточнения деталей заказа', reply_markup=kb.main)
     await state.finish()
 
 """
@@ -300,13 +300,17 @@ async def buy_all_address_set(message: types.Message, state: FSMContext):
         
         users_cart = await require_tovar(message.from_user.id)
         for item in users_cart:
-            await bot.send_message(chat_id=int(os.getenv('GROUP_ID')), text=f'Купили: {item[2]}')
+            print(item)
+            about_item = await check_tovar(item[2])
+            print(about_item)
+            await bot.send_photo(chat_id=int(os.getenv('GROUP_ID')), photo=about_item[4], caption=f'Купили: {about_item[1]}\n'
+                                                                            f'Цена: {about_item[3]}\n')
 #
             cur.execute("DELETE FROM cart WHERE i_id == {key} AND tg_id == {key2}".format(key=int(item[2]),
                                                                                         key2=int(buy_that['user_id'])))
             db.commit()
         await message.forward(chat_id=int(os.getenv('GROUP_ID')))
-    await message.answer(f'Спасибо за заказ! Мы Вам перезвоним в течении часа для уточнения деталей заказа')
+    await message.answer(f'Спасибо за заказ! Мы Вам перезвоним в течении часа для уточнения деталей заказа', reply_markup=kb.main)
     await state.finish()
 
 

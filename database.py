@@ -27,3 +27,8 @@ async def delete_tovar(data, state):
 async def require_tovar(user_id):
     items_from_cart = cur.execute("SELECT * FROM cart WHERE tg_id == {key}".format(key=user_id)).fetchall()
     return items_from_cart
+
+
+async def check_tovar(item_id):
+    item_id = cur.execute("SELECT * FROM items WHERE i_id == {key}".format(key=item_id)).fetchone()
+    return item_id

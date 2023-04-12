@@ -21,7 +21,7 @@ cancel = ReplyKeyboardMarkup(resize_keyboard=True)
 cancel.add('Отмена')
 
 location = ReplyKeyboardMarkup(resize_keyboard=True)
-location.add(KeyboardButton('Отправить геолокацию!', request_location=True))
+location.add(KeyboardButton('Отправить геолокацию!', request_location=True)).add(KeyboardButton('Отмена'))
 
 #  ------------------------------------------------------------------
 """
