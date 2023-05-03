@@ -4,7 +4,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.dispatcher import FSMContext
 import keyboards as kb
-from database import * 
+from database import *
 from aiogram.utils.exceptions import BotBlocked
 import dotenv
 import os
@@ -26,6 +26,7 @@ async def on_startup(_):
 
 class AddItems(StatesGroup):
     category = State()
+    type = State()
     name = State()
     desc = State()
     photo = State()
@@ -63,7 +64,7 @@ class BuyAll(StatesGroup):
     cart_check = State()
     number = State()
     name = State()
-    address = State()    
+    address = State()
 
 
 @dp.message_handler(commands=['start'])
@@ -74,7 +75,7 @@ async def cmd_start(message: types.Message):
         cur.execute("INSERT INTO accounts VALUES(?, ?, ?, ?)", (message.from_user.id, '', '', ''))
         db.commit()
     if message.from_user.id == int(os.getenv('ADMIN_ID')):
-        await message.answer(f'Вы авторизовались как администратор!', reply_markup=kb.admin_main)
+        await message.answer(f'Вы авторизовались как администратор! 🖥', reply_markup=kb.admin_main)
 
 
 @dp.message_handler(text='Контакты 📲')
@@ -82,23 +83,24 @@ async def contacts(message: types.Message):
     await message.answer(f'По всем интересующим вопросам, обращаться по номеру:📲 +998903944839')
 
 
-@dp.message_handler(text='Отмена', state='*')
+@dp.message_handler(text='Назад ◀️', state='*')
 async def cancel(message: types.Message, state: FSMContext):
     await state.finish()
-    await message.answer(f'Отменено.', reply_markup=kb.main)
+    await message.answer(f'Вы вернулись назад ◀️', reply_markup=kb.main)
     if message.from_user.id == int(os.getenv('ADMIN_ID')):
-        await message.answer(f'Вы авторизовались как администратор!', reply_markup=kb.admin_main)
+        await message.answer(f'Вы авторизовались как администратор! 🖥', reply_markup=kb.admin_main)
 
 
 @dp.callback_query_handler(lambda callback_query: callback_query.data == 'backkk', state='*')
 async def backkk(callback_query: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await bot.send_message(chat_id=callback_query.from_user.id, text='Вы вернулись назад', reply_markup=kb.main)
+    await bot.send_message(chat_id=callback_query.from_user.id, text='Вы вернулись назад ◀️', reply_markup=kb.main)
     if callback_query.from_user.id == int(os.getenv('ADMIN_ID')):
-        await bot.send_message(chat_id=callback_query.from_user.id, text='Админ???)))', reply_markup=kb.admin_main)
+        await bot.send_message(chat_id=callback_query.from_user.id, text='Вы авторизовались как администратор! 🖥',
+                               reply_markup=kb.admin_main)
 
 
-@dp.message_handler(text='Добавить товар')
+@dp.message_handler(text='Добавить товар ™️')
 async def add_item(message: types.Message) -> None:
     if message.from_user.id == int(os.getenv('ADMIN_ID')):
         await AddItems.category.set()
@@ -110,14 +112,29 @@ async def add_item(message: types.Message) -> None:
 @dp.message_handler(state=AddItems.category)
 async def add_category(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        if message.text == 'Мужская одежда':
+        if message.text == 'Мужская одежда 👔':
             data['category'] = 'man'
-        elif message.text == 'Женская одежда':
+        elif message.text == 'Женская одежда 👗':
             data['category'] = 'women'
-        elif message.text == 'Детская одежда':
+        elif message.text == 'Детская одежда 🧤':
             data['category'] = 'kids'
         elif message.text == 'Для всех':
             data['category'] = 'all'
+    await message.reply('Теперь выберите раздел', reply_markup=kb.types)
+    await AddItems.next()
+
+
+@dp.message_handler(state=AddItems.type)
+async def add_type(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        if message.text == 'Рубашки 👔':
+            data['type'] = 'man'
+        elif message.text == 'Платья 👗':
+            data['type'] = 'women'
+        elif message.text == 'Перчатки 🧤':
+            data['type'] = 'kids'
+        elif message.text == 'Обувь 👟':
+            data['type'] = 'shoes'
     await message.reply('Теперь отправьте название товара (только текст!)', reply_markup=kb.cancel)
     await AddItems.next()
 
@@ -147,9 +164,11 @@ async def add_item_check_photo(message: types.Message) -> None:
 
 @dp.message_handler(content_types=['photo'], state=AddItems.photo)
 async def add_item_load_photo(message: types.Message, state: FSMContext) -> None:
-    async with state.proxy() as data:
-        data['photo'] = message.photo[0].file_id
-
+    list_photo = []
+    for ph in message.photo:
+        list_photo.append(ph[-1].file_id)
+        print(ph[-1].file_id)
+    print(list_photo)
     await message.reply('Теперь отправьте цену (только числа! без пробелов!)')
     await AddItems.next()
 
@@ -166,15 +185,15 @@ async def add_item_price(message: types.Message, state: FSMContext) -> None:
     await state.finish()
 
 
-@dp.message_handler(text='Каталог 👟')
+@dp.message_handler(text='Каталог 👔')
 async def catalog(message: types.Message) -> None:
     cur.execute("SELECT name FROM items")
     items = cur.fetchall()
     if not items:
-        await message.answer(f'Каталог пуст!')
+        await message.answer(f'Каталог пуст! 👔')
     else:
-        await message.answer('Вы выбрали каталог.', reply_markup=ReplyKeyboardRemove())
-        await message.answer(f'Выберите кроссы', reply_markup=kb.catalog_buttons())
+        await message.answer('Вы выбрали каталог 👔.', reply_markup=ReplyKeyboardRemove())
+        await message.answer(f'Выберите раздел', reply_markup=kb.catalog_buttons())
         await UX.check_catalog.set()
 
 
@@ -184,7 +203,7 @@ async def add_to_cart(callback_query: types.CallbackQuery, state: FSMContext) ->
         cur.execute("INSERT INTO cart (tg_id, i_id) VALUES (?, ?)", (callback_query.from_user.id, data['tovar']))
         db.commit()
         await bot.send_message(chat_id=callback_query.from_user.id,
-                               text=f'Товар добавлен в корзину!',
+                               text=f'Товар добавлен в корзину! 🗑',
                                reply_markup=kb.main)
         await state.finish()
 
@@ -216,7 +235,7 @@ async def catalog(message: types.Message, state: FSMContext) -> None:
     item = cur.fetchall()
     print(item)
     if item == []:
-        await message.answer(f'Корзина пуста!')
+        await message.answer(f'Корзина пуста! 🗑')
     else:
         for tovar in item:
             cur.execute("SELECT * FROM items WHERE i_id == {key}".format(key=int(tovar[2])))
@@ -226,6 +245,8 @@ async def catalog(message: types.Message, state: FSMContext) -> None:
                 buy_that['tovar'] = tovar[0][1]
                 buy_that['tovar_id'] = tovar[0][0]
                 buy_that['user_id'] = message.from_user.id
+                buy_that['photo'] = tovar[0][4]
+                buy_that['price'] = tovar[0][3]
 
 
 @dp.callback_query_handler(lambda callback_query: callback_query.data == 'buy')
@@ -254,17 +275,20 @@ async def buy_number_set(message: types.Message, state: FSMContext):
 async def buy_address_set(message: types.Message, state: FSMContext):
     async with state.proxy() as buy_that:
         buy_that['address'] = message.text
-        await bot.send_message(chat_id=int(os.getenv('GROUP_ID')), text=f'Купили!\n'
-                                                                        f'{buy_that["tovar"]}\n'
-                                                                        f'{buy_that["number"]}\n'
-                                                                        f'{buy_that["name"]}\n')
+        await bot.send_photo(chat_id=int(os.getenv('GROUP_ID')), photo=buy_that['photo'], caption=f'Купили 🛒: \n'
+                                                                                                  f'Цена: {buy_that["price"]}\n'
+                                                                                                  f'Номер телефона: {buy_that["number"]}\n'
+                                                                                                  f'Имя: {buy_that["name"]}\n')
+
         await message.forward(chat_id=int(os.getenv('GROUP_ID')))
 
         cur.execute("DELETE FROM cart WHERE i_id == {key} AND tg_id == {key2}".format(key=int(buy_that['tovar_id']),
                                                                                       key2=int(buy_that['user_id'])))
         db.commit()
-    await message.answer(f'Спасибо за заказ! Мы Вам перезвоним в течении часа для уточнения деталей заказа', reply_markup=kb.main)
+    await message.answer(f'Спасибо за заказ! Мы Вам перезвоним в течении часа для уточнения деталей заказа 📲',
+                         reply_markup=kb.main)
     await state.finish()
+
 
 """
 ПОКУПКА ВСЕГО
@@ -297,20 +321,26 @@ async def buy_all_number_set(message: types.Message, state: FSMContext):
 async def buy_all_address_set(message: types.Message, state: FSMContext):
     async with state.proxy() as buy_that:
         buy_that['address'] = message.text
-        
+
         users_cart = await require_tovar(message.from_user.id)
         for item in users_cart:
             print(item)
             about_item = await check_tovar(item[2])
             print(about_item)
-            await bot.send_photo(chat_id=int(os.getenv('GROUP_ID')), photo=about_item[4], caption=f'Купили: {about_item[1]}\n'
-                                                                            f'Цена: {about_item[3]}\n')
-#
+            await bot.send_photo(chat_id=int(os.getenv('GROUP_ID')), photo=about_item[4],
+                                 caption=f'Купили 🛒: '
+                                         f'{about_item[1]}\n'
+                                         f'Цена: {about_item[3]}\n'
+                                         f'Номер телефона: {buy_that["number"]}\n'
+                                         f'Имя: {buy_that["name"]}\n')
+            #
             cur.execute("DELETE FROM cart WHERE i_id == {key} AND tg_id == {key2}".format(key=int(item[2]),
-                                                                                        key2=int(buy_that['user_id'])))
+                                                                                          key2=int(
+                                                                                              buy_that['user_id'])))
             db.commit()
         await message.forward(chat_id=int(os.getenv('GROUP_ID')))
-    await message.answer(f'Спасибо за заказ! Мы Вам перезвоним в течении часа для уточнения деталей заказа', reply_markup=kb.main)
+    await message.answer(f'Спасибо за заказ! Мы Вам перезвоним в течении часа для уточнения деталей заказа 📲',
+                         reply_markup=kb.main)
     await state.finish()
 
 
@@ -345,15 +375,15 @@ async def sent_for_all(message: types.Message, state: FSMContext):
     await message.answer('Рассылка завершена', reply_markup=kb.admin_main)
 
 
-@dp.message_handler(text='Админ-панель')
+@dp.message_handler(text='Админ-панель 🖥')
 async def admin_panel(message: types.Message):
     if message.from_user.id == int(os.getenv('ADMIN_ID')):
-        await message.answer(f'Вы вошли в админ-панель.', reply_markup=kb.admin_panel)
+        await message.answer(f'Вы вошли в админ-панель. 🖥', reply_markup=kb.admin_panel)
     else:
         await message.answer(f'Неизвестная команда!')
 
 
-@dp.message_handler(text='Удалить товар')
+@dp.message_handler(text='Удалить товар 🗑')
 async def delete_item(message: types.Message):
     if message.from_user.id == int(os.getenv('ADMIN_ID')):
         await DeleteItems.number.set()
